@@ -12,3 +12,4 @@ name = "dtoa_benchmark"
 harness = false
 
 [dependencies]
+ryu = { git = "https://github.com/torrencem/ryu" }
