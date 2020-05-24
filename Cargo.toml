@@ -6,6 +6,7 @@ edition = "2018"
 
 [dev-dependencies]
 criterion = "0.3"
+rand = "0.7.3"
 
 [[bench]]
 name = "dtoa_benchmark"
@@ -13,3 +14,4 @@ harness = false
 
 [dependencies]
 ryu = { git = "https://github.com/torrencem/ryu" }
+
