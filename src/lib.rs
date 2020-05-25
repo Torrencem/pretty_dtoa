@@ -20,6 +20,12 @@ pub struct FmtFloatConfig {
     /// in the formatted string (after the first non-zero digit)
     /// None means no minimum
     min_sig_digits: Option<u8>,
+    /// A max number of digits after the decimal point to include.
+    /// Overrides any significant digit rules
+    max_decimal_digits: Option<i8>,
+    /// A min number of digits after the decimal point to include.
+    /// Overrides any significant digit rules
+    min_decimal_digits: Option<i8>,
     /// How many digits left of the decimal point there can be
     /// using scientific notation
     upper_e_break: i8,
@@ -49,6 +55,8 @@ impl FmtFloatConfig {
         FmtFloatConfig {
             max_sig_digits: None,
             min_sig_digits: None,
+            max_decimal_digits: None,
+            min_decimal_digits: None,
             upper_e_break: 7,
             lower_e_break: -4,
             ignore_extremes: Some(5),
@@ -65,6 +73,8 @@ impl FmtFloatConfig {
         FmtFloatConfig {
             max_sig_digits: None,
             min_sig_digits: None,
+            max_decimal_digits: None,
+            min_decimal_digits: None,
             upper_e_break: 4,
             lower_e_break: -4,
             ignore_extremes: None,
@@ -86,6 +96,18 @@ impl FmtFloatConfig {
     /// The minimum number of non-zero digits to include in the string
     pub const fn min_significant_digits(mut self, val: u8) -> Self {
         self.min_sig_digits = Some(val);
+        self
+    }
+
+    /// The maximum number of digits past the decimal point to include in the string
+    pub const fn max_decimal_digits(mut self, val: i8) -> Self {
+        self.max_decimal_digits = Some(val);
+        self
+    }
+    
+    /// The minimum number of digits past the decimal point to include in the string
+    pub const fn min_decimal_digits(mut self, val: i8) -> Self {
+        self.min_decimal_digits = Some(val);
         self
     }
     
@@ -229,6 +251,32 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
         while curr < limit {
             stripped_string.push(0);
             curr += 1;
+        }
+    }
+    if let Some(limit) = config.min_decimal_digits {
+        let adjusted_limit_position = limit as i32 + e;
+        while (stripped_string.len() as i32) < adjusted_limit_position {
+            stripped_string.push(0);
+        }
+    }
+    if let Some(limit) = config.max_decimal_digits {
+        let adjusted_limit_position = limit as i32 + e;
+        if (0 <= adjusted_limit_position) && (adjusted_limit_position < stripped_string.len() as i32) {
+            let final_char = stripped_string.drain(adjusted_limit_position as usize ..).nth(0).unwrap();
+            if config.round_mode == RoundMode::Round && final_char >= 5 {
+                let mut l = stripped_string.len() - 1;
+                stripped_string[l] += 1;
+                while stripped_string[l] == 10 {
+                    if l == 0 {
+                        stripped_string[0] = 1;
+                        e += 1;
+                        break;
+                    }
+                    stripped_string.pop();
+                    l -= 1;
+                    stripped_string[l] += 1;
+                }
+            }
         }
     }
     let mut use_e_notation = (e > config.upper_e_break as i32 || e <= config.lower_e_break as i32 || config.force_e_notation) && !config.force_no_e_notation;
@@ -414,6 +462,40 @@ mod tests {
         assert_eq!(dtoa(340.0, config), "340.00");
         assert_eq!(dtoa(123.4567, config), "123.4567");
         assert_eq!(dtoa(0.00123, config), "0.0012300");
+    }
+
+    #[test]
+    fn test_max_decimal_digits() {
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(3)
+            .round();
+        assert_eq!(dtoa(3.41214, config), "3.412");
+        assert_eq!(dtoa(3.4129, config), "3.413");
+        assert_eq!(dtoa(3.4999, config), "3.5");
+        assert_eq!(dtoa(1293.4129, config), "1293.413");
+        assert_eq!(dtoa(203.4999, config), "203.5");
+        assert_eq!(dtoa(0.002911, config), "0.003");
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(3)
+            .truncate();
+        assert_eq!(dtoa(3.41214, config), "3.412");
+        assert_eq!(dtoa(3.4129, config), "3.412");
+        assert_eq!(dtoa(3.4999, config), "3.499");
+        assert_eq!(dtoa(393.4129, config), "393.412");
+    }
+
+    #[test]
+    fn test_min_decimal_digits() {
+        let config = FmtFloatConfig::default()
+            .min_decimal_digits(3);
+        assert_eq!(dtoa(3.4, config), "3.400");
+        assert_eq!(dtoa(10.0, config), "10.000");
+        assert_eq!(dtoa(100.0, config), "100.000");
+        let config = FmtFloatConfig::default()
+            .min_decimal_digits(5);
+        assert_eq!(dtoa(0.023, config), "0.02300");
+        assert_eq!(dtoa(0.123, config), "0.12300");
+        assert_eq!(dtoa(0.12345678, config), "0.12345678");
     }
 
     #[test]
