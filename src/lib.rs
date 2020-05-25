@@ -209,6 +209,8 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
                         stripped_string.push(1);
                         e += 1;
                     } else {
+                        // Rounding doesn't have to happen here, because what was removed
+                        // was exactly limit 9's
                         stripped_string[l - 1] += 1;
                     }
                     break;
@@ -551,6 +553,10 @@ mod tests {
         assert_eq!(dtoa(12.199921, config), "12.2");
         assert_eq!(dtoa(12.1002, config), "12.1002");
         assert_eq!(dtoa(12.10002, config), "12.1");
+        let config = FmtFloatConfig::default()
+            .ignore_extremes(3)
+            .add_point_zero(true);
+        assert_eq!(dtoa(99.99, config), "100.0");
     }
 
     #[test]
