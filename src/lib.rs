@@ -482,6 +482,21 @@ mod tests {
         assert_eq!(dtoa(3.4129, config), "3.412");
         assert_eq!(dtoa(3.4999, config), "3.499");
         assert_eq!(dtoa(393.4129, config), "393.412");
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(-3)
+            .truncate()
+            .force_no_e_notation(true)
+            .add_point_zero(true);
+        assert_eq!(dtoa(123123.0, config), "123000.0");
+        assert_eq!(dtoa(99999.0, config), "99000.0");
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(-3)
+            .round()
+            .force_no_e_notation(true)
+            .add_point_zero(true);
+        assert_eq!(dtoa(123123.0, config), "123000.0");
+        assert_eq!(dtoa(123923.0, config), "124000.0");
+        assert_eq!(dtoa(99999.0, config), "100000.0");
     }
 
     #[test]
