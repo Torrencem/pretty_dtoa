@@ -423,15 +423,24 @@ mod tests {
     fn test_round_trip() {
         let mut rng = rand::thread_rng();
         
-        let config = FmtFloatConfig::default();
+        let configs = &[
+            FmtFloatConfig::default(),
+            FmtFloatConfig::default()
+                .force_no_e_notation(true)
+                .add_point_zero(true),
+            FmtFloatConfig::default()
+                .force_e_notation(true),
+        ];
         for _ in 0..20000 {
-            let val = f64::from_bits(rng.gen::<u64>());
-            if val.is_nan() {
-                continue;
+            for config in configs.iter().cloned() {
+                let val = f64::from_bits(rng.gen::<u64>());
+                if val.is_nan() {
+                    continue;
+                }
+                let as_string = dtoa(val, config);
+                let round = as_string.parse::<f64>().unwrap();
+                assert!(round == val, "Found bad example for round trip: value '{}' gives string '{}' which turns into value '{}'", val, as_string, round);
             }
-            let as_string = dtoa(val, config);
-            let round = as_string.parse::<f64>().unwrap();
-            assert!(round == val, "Found bad example for round trip: value '{}' gives string '{}' which turns into value '{}'", val, as_string, round);
         }
     }
 
