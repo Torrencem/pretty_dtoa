@@ -61,7 +61,7 @@ impl FmtFloatConfig {
         }
     }
 
-    pub const fn precise() -> Self {
+    pub const fn default() -> Self {
         FmtFloatConfig {
             max_sig_digits: None,
             min_sig_digits: None,
@@ -169,8 +169,7 @@ impl FmtFloatConfig {
     }
 }
 
-pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
-    let (sign, s, mut e) = raw::dtoa(value);
+fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> String {
     let mut stripped_string: Vec<u8> = Vec::with_capacity(30);
     let mut nine_counter = 0;
     let mut zero_counter = 0;
@@ -278,7 +277,7 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
             }
         }
         // Special case
-        if tail_as_str.len() == 0 && config.max_width == Some(7) && value < 0.0 {
+        if tail_as_str.len() == 0 && config.max_width == Some(7) && sign {
             return format!("-{}{}{}",
                            stripped_string[0],
                            if config.capitalize_e { "E" } else { "e" },
@@ -322,6 +321,17 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     }
 
     as_str
+
+}
+
+pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
+    let (sign, s, e) = raw::dtod(value);
+    digits_to_a(sign, s, e, config)
+}
+
+pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
+    let (sign, s, e) = raw::ftod(value);
+    digits_to_a(sign, s, e, config)
 }
 
 #[cfg(test)]
@@ -365,7 +375,7 @@ mod tests {
     fn test_round_trip() {
         let mut rng = rand::thread_rng();
         
-        let config = FmtFloatConfig::precise();
+        let config = FmtFloatConfig::default();
         for _ in 0..20000 {
             let val = f64::from_bits(rng.gen::<u64>());
             if val.is_nan() {
@@ -379,7 +389,7 @@ mod tests {
 
     #[test]
     fn test_max_sig_digits() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .round()
             .max_significant_digits(5);
         assert_eq!(dtoa(3.111111, config), "3.1111");
@@ -387,7 +397,7 @@ mod tests {
         assert_eq!(dtoa(0.0001234567, config), "0.00012346");
         assert_eq!(dtoa(22.29999, config), "22.3");
         assert_eq!(dtoa(4.1, config), "4.1");
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .truncate()
             .max_significant_digits(4);
         assert_eq!(dtoa(3.999999, config), "3.999");
@@ -397,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_min_sig_digits() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .min_significant_digits(5);
         assert_eq!(dtoa(3.111111, config), "3.111111");
         assert_eq!(dtoa(12.0, config), "12.000");
@@ -408,7 +418,7 @@ mod tests {
 
     #[test]
     fn test_upper_e_break() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .upper_e_break(3);
         assert_eq!(dtoa(23.4, config), "23.4");
         assert_eq!(dtoa(892.3, config), "892.3");
@@ -418,7 +428,7 @@ mod tests {
     
     #[test]
     fn test_lower_e_break() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .lower_e_break(-3);
         assert_eq!(dtoa(0.123, config), "0.123");
         assert_eq!(dtoa(0.0123, config), "0.0123");
@@ -429,7 +439,7 @@ mod tests {
 
     #[test]
     fn test_ignore_extremes() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .ignore_extremes(3);
         assert_eq!(dtoa(12.1992, config), "12.1992");
         assert_eq!(dtoa(12.199921, config), "12.2");
@@ -439,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_force_e_notation() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .force_e_notation(true);
         assert_eq!(dtoa(1.0, config), "1.0e0");
         assert_eq!(dtoa(15.0, config), "1.5e1");
@@ -448,7 +458,7 @@ mod tests {
 
     #[test]
     fn test_force_no_e_notation() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .force_no_e_notation(true);
         let s = format!("{}", 1.123e20);
         assert_eq!(dtoa(1.123e20, config), s);
@@ -458,19 +468,19 @@ mod tests {
 
     #[test]
     fn test_capitalize_e() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .capitalize_e(true);
         assert_eq!(dtoa(1.2e8, config), "1.2E8");
     }
 
     #[test]
     fn test_add_point_zero() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .add_point_zero(true);
         assert_eq!(dtoa(1230.0, config), "1230.0");
         assert_eq!(dtoa(129.0, config), "129.0");
         assert_eq!(dtoa(12.2, config), "12.2");
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .add_point_zero(false);
         assert_eq!(dtoa(1230.0, config), "1230");
         assert_eq!(dtoa(129.0, config), "129");
@@ -479,7 +489,7 @@ mod tests {
 
     #[test]
     fn test_max_width_specifics() {
-        let config = FmtFloatConfig::precise()
+        let config = FmtFloatConfig::default()
             .max_width(6);
         assert_eq!(dtoa(123.4533, config), "123.45");
         assert_eq!(dtoa(0.00324, config), "0.0032");
