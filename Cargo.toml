@@ -1,8 +1,16 @@
 [package]
-name = "pretty_dtoa"
-version = "0.1.0"
-authors = ["Matthew Torrence <matt@torrencefamily.net>"]
-edition = "2018"
+name          = "pretty_dtoa"
+version       = "0.1.0"
+authors       = ["Matthew Torrence <matt@torrencefamily.net>"]
+edition       = "2018"
+description   = "Configurable floating point to string conversions, with many options for controlling various aspects of displaying floats."
+readme        = "README.md"
+license       = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/pretty_dtoa"
+homepage      = "https://github.com/torrencem/pretty_dtoa"
+repository    = "https://github.com/torrencem/pretty_dtoa"
+keywords      = ["float", "double", "display", "dtoa"]
+categories    = ["value-formatting"]
 
 [dev-dependencies]
 criterion = "0.3"
@@ -13,5 +21,5 @@ name = "dtoa_benchmark"
 harness = false
 
 [dependencies]
-ryu = { git = "https://github.com/torrencem/ryu" }
+ryu = { path = "./ryu", version = "1.0.6" }
 
