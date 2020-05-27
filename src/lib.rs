@@ -191,6 +191,10 @@ impl FmtFloatConfig {
     }
 }
 
+const fn digit_to_u8(val: u8) -> u8 {
+    val + '0' as u8
+}
+
 fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> String {
     let mut stripped_string: Vec<u8> = Vec::with_capacity(30);
     let mut nine_counter = 0;
@@ -198,7 +202,7 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
     let mut curr = 0;
     for digit in s.iter() {
         if let Some(limit) = config.ignore_extremes {
-            if *digit != 9 {
+            if *digit != digit_to_u8(9) {
                 nine_counter = 0;
             } else {
                 nine_counter += 1;
@@ -206,7 +210,7 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
                     stripped_string.drain((stripped_string.len() + 1 - nine_counter as usize)..);
                     let l = stripped_string.len();
                     if l == 0 {
-                        stripped_string.push(1);
+                        stripped_string.push(digit_to_u8(1));
                         e += 1;
                     } else {
                         // Rounding doesn't have to happen here, because what was removed
@@ -217,7 +221,7 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
                 }
             }
 
-            if *digit != 0 {
+            if *digit != digit_to_u8(0) {
                 zero_counter = 0;
             } else {
                 zero_counter += 1;
@@ -229,12 +233,12 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
         }
         if let Some(limit) = config.max_sig_digits {
             if curr + 1 > limit {
-                if *digit >= 5 && config.round_mode == RoundMode::Round {
+                if *digit >= digit_to_u8(5) && config.round_mode == RoundMode::Round {
                     let mut l = stripped_string.len() - 1;
                     stripped_string[l] += 1;
-                    while stripped_string[l] == 10 {
+                    while stripped_string[l] == digit_to_u8(10) {
                         if l == 0 {
-                            stripped_string[0] = 1;
+                            stripped_string[0] = digit_to_u8(1);
                             e += 1;
                             break;
                         }
@@ -251,26 +255,26 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
     }
     if let Some(limit) = config.min_sig_digits {
         while curr < limit {
-            stripped_string.push(0);
+            stripped_string.push(digit_to_u8(0));
             curr += 1;
         }
     }
     if let Some(limit) = config.min_decimal_digits {
         let adjusted_limit_position = limit as i32 + e;
         while (stripped_string.len() as i32) < adjusted_limit_position {
-            stripped_string.push(0);
+            stripped_string.push(digit_to_u8(0));
         }
     }
     if let Some(limit) = config.max_decimal_digits {
         let adjusted_limit_position = limit as i32 + e;
         if (0 <= adjusted_limit_position) && (adjusted_limit_position < stripped_string.len() as i32) {
             let final_char = stripped_string.drain(adjusted_limit_position as usize ..).nth(0).unwrap();
-            if config.round_mode == RoundMode::Round && final_char >= 5 {
+            if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
                 let mut l = stripped_string.len() - 1;
                 stripped_string[l] += 1;
-                while stripped_string[l] == 10 {
+                while stripped_string[l] == digit_to_u8(10) {
                     if l == 0 {
-                        stripped_string[0] = 1;
+                        stripped_string[0] = digit_to_u8(1);
                         e += 1;
                         break;
                     }
@@ -298,12 +302,12 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
             let total_length = stripped_string.len() + extra_length as usize;
             if total_length > max_width as usize {
                 let final_char = stripped_string.drain((max_width as usize - extra_length as usize)..).nth(0).unwrap();
-                if config.round_mode == RoundMode::Round && final_char >= 5 {
+                if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
                     let mut l = stripped_string.len() - 1;
                     stripped_string[l] += 1;
-                    while stripped_string[l] == 10 {
+                    while stripped_string[l] == digit_to_u8(10) {
                         if l == 0 {
-                            stripped_string[0] = 1;
+                            stripped_string[0] = digit_to_u8(1);
                             e += 1;
                             break;
                         }
@@ -316,7 +320,7 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
         }
     }
     if use_e_notation {
-        let mut tail_as_str: String = stripped_string.drain(1..).map(|val| char::from_digit(val as u32, 10).unwrap()).collect();
+        let mut tail_as_str: String = stripped_string.drain(1..).map(|val| val as char).collect();
         if let Some(max_width) = config.max_width {
             let e_length = format!("{}", e - 1).len();
             let extra_length = 3 + e_length + if sign { 1 } else { 0 };
@@ -329,13 +333,13 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
         // Special case
         if tail_as_str.len() == 0 && config.max_width == Some(7) && sign {
             return format!("-{}{}{}",
-                           stripped_string[0],
+                           stripped_string[0] as char,
                            if config.capitalize_e { "E" } else { "e" },
                            e - 1);
         } else {
             return format!("{}{}.{}{}{}",
                            if sign { "-" } else { "" },
-                           stripped_string[0],
+                           stripped_string[0] as char,
                            if tail_as_str.len() == 0 { if config.max_width.is_some() { "" } else { "0" } } else { tail_as_str.as_ref() }, 
                            if config.capitalize_e { "E" } else { "e" },
                            e - 1);
@@ -357,7 +361,7 @@ fn digits_to_a(sign: bool, s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -> St
         if e > 0 && curr == e {
             as_str.push('.');
         }
-        as_str.push(char::from_digit(digit as u32, 10).unwrap());
+        as_str.push(digit as char);
         curr += 1;
     }
     let is_integer = curr <= e;

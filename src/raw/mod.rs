@@ -13,10 +13,7 @@ pub fn dtod(val: f64) -> (bool, Vec<u8>, i32) {
     let as_digits: Vec<u8> = as_decimal
             .mantissa
             .to_string()
-            .into_bytes()
-            .into_iter()
-            .map(|val| val - ('0' as u8))
-            .collect();
+            .into_bytes();
     let exp = as_decimal.exponent + as_digits.len() as i32;
     (sign, as_digits, exp)
 }
@@ -32,10 +29,7 @@ pub fn ftod(val: f32) -> (bool, Vec<u8>, i32) {
     let as_digits: Vec<u8> = as_decimal
             .mantissa
             .to_string()
-            .into_bytes()
-            .into_iter()
-            .map(|val| val - ('0' as u8))
-            .collect();
+            .into_bytes();
     let exp = as_decimal.exponent + as_digits.len() as i32;
     (sign, as_digits, exp)
 }
