@@ -4,7 +4,7 @@ pub mod raw;
 use std::char;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-enum RoundMode {
+pub enum RoundMode {
     Round,
     Truncate,
 }
@@ -17,7 +17,7 @@ enum RoundMode {
 /// use pretty_dtoa::{dtoa, FmtFloatConfig};
 ///
 /// let config = FmtFloatConfig::default()
-///     .force_no_e_notation(true)  // Don't use scientific notation
+///     .force_no_e_notation()  // Don't use scientific notation
 ///     .add_point_zero(true)       // Add .0 to the end of integers
 ///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
 ///     .radix_point(',')           // Use a ',' instead of a '.'
@@ -30,45 +30,48 @@ pub struct FmtFloatConfig {
     /// A max number of significant digits to include
     /// in the formatted string (after the first non-zero digit)
     /// None means include all digits
-    max_sig_digits: Option<u8>,
+    pub max_sig_digits: Option<u8>,
     /// A min number of significant digits to include
     /// in the formatted string (after the first non-zero digit)
     /// None means no minimum
-    min_sig_digits: Option<u8>,
+    pub min_sig_digits: Option<u8>,
     /// A max number of digits after the decimal point to include.
     /// Overrides any significant digit rules
-    max_decimal_digits: Option<i8>,
+    pub max_decimal_digits: Option<i8>,
     /// A min number of digits after the decimal point to include.
     /// Overrides any significant digit rules
-    min_decimal_digits: Option<i8>,
+    pub min_decimal_digits: Option<i8>,
     /// How many digits left of the decimal point there can be
     /// using scientific notation
-    upper_e_break: i8,
+    pub upper_e_break: i8,
     /// Lower equivelent of upper_e_break
-    lower_e_break: i8,
+    pub lower_e_break: i8,
     /// Ignore digits after (and including) a certain number of
     /// consecutive 9's or 0's
-    ignore_extremes: Option<u8>,
+    pub ignore_extremes: Option<u8>,
     /// Round or truncate
-    round_mode: RoundMode,
+    pub round_mode: RoundMode,
     /// Force scientific e notation
-    force_e_notation: bool,
+    pub force_e_notation: bool,
     /// Force no scientific e notation. Overrides force_e_notation
-    force_no_e_notation: bool,
+    pub force_no_e_notation: bool,
     /// Capitalize the e in scientific notation
-    capitalize_e: bool,
+    pub capitalize_e: bool,
     /// Add a .0 at the end of integers
-    add_point_zero: bool,
-    /// The maximum number of characters in the formatted version of
-    /// the float. This will try to respect all other options, unless
-    /// they would make the string too long. values less than 5 are not allowed
-    max_width: Option<u8>,
+    pub add_point_zero: bool,
+    /// The maximum number of characters in the string. This
+    /// should be greater than or equal to 7 to guarantee all floats
+    /// will print correctly, but can be smaller for certain floats
+    pub max_width: Option<u8>,
     /// The seperator between the integer and non-integer part
-    radix_point: char,
+    pub radix_point: char,
 }
 
 impl FmtFloatConfig {
-
+    
+    /// A default configuration. This will always round-trip, so
+    /// using ``str::parse::<f64>`` or ``str::parse:<f32>`` will
+    /// give the exact same float.
     pub const fn default() -> Self {
         FmtFloatConfig {
             max_sig_digits: None,
@@ -88,48 +91,25 @@ impl FmtFloatConfig {
         }
     }
 
-    pub const fn human() -> Self {
-        FmtFloatConfig {
-            max_sig_digits: None,
-            min_sig_digits: None,
-            max_decimal_digits: None,
-            min_decimal_digits: None,
-            upper_e_break: 7,
-            lower_e_break: -4,
-            ignore_extremes: Some(5),
-            round_mode: RoundMode::Round,
-            force_e_notation: false,
-            force_no_e_notation: false,
-            capitalize_e: false,
-            add_point_zero: false,
-            max_width: None,
-            radix_point: '.',
-        }
-    }
-
     /// The maximum number of non-zero digits to include in the string
-    /// (default: not set)
     pub const fn max_significant_digits(mut self, val: u8) -> Self {
         self.max_sig_digits = Some(val);
         self
     }
     
     /// The minimum number of non-zero digits to include in the string
-    /// (default: not set)
     pub const fn min_significant_digits(mut self, val: u8) -> Self {
         self.min_sig_digits = Some(val);
         self
     }
 
     /// The maximum number of digits past the decimal point to include in the string
-    /// (default: not set)
     pub const fn max_decimal_digits(mut self, val: i8) -> Self {
         self.max_decimal_digits = Some(val);
         self
     }
     
     /// The minimum number of digits past the decimal point to include in the string
-    /// (default: not set)
     pub const fn min_decimal_digits(mut self, val: i8) -> Self {
         self.min_decimal_digits = Some(val);
         self
@@ -149,19 +129,11 @@ impl FmtFloatConfig {
         self
     }
 
-    /// Un-does ``ignore_extremes()``, and allows
-    /// normal patterns of digits.
-    pub const fn allow_extremes(mut self) -> Self {
-        self.ignore_extremes = None;
-        self
-    }
-
     /// Ignore digits after and including a certain number of
     /// consecutive 9's or 0's. This is useful for printing
     /// numbers with floating point errors to humans, even
     /// if the numbers are technically slightly adjusted.
     /// 3.59999951 -> 3.6
-    /// (default: not set)
     pub const fn ignore_extremes(mut self, limit: u8) -> Self {
         self.ignore_extremes = Some(limit);
         self
@@ -187,17 +159,17 @@ impl FmtFloatConfig {
 
     /// Force all floats to be in scientific notation
     /// 31 -> 3.1e1
-    /// (default: false)
-    pub const fn force_e_notation(mut self, val: bool) -> Self {
-        self.force_e_notation = val;
+    pub const fn force_e_notation(mut self) -> Self {
+        self.force_e_notation = true;
+        self.force_no_e_notation = false;
         self
     }
     
     /// Force all floats to not be in scientific notation
     /// 3e10 -> 30000000000
-    /// (default: false)
-    pub const fn force_no_e_notation(mut self, val: bool) -> Self {
-        self.force_no_e_notation = val;
+    pub const fn force_no_e_notation(mut self) -> Self {
+        self.force_no_e_notation = true;
+        self.force_e_notation = false;
         self
     }
     
@@ -220,7 +192,6 @@ impl FmtFloatConfig {
     /// The maximum width of all the characters in the string. This
     /// should be greater than or equal to 7 to guarantee all floats
     /// will print correctly, but can be smaller for certain floats
-    /// (default: not set)
     pub const fn max_width(mut self, val: u8) -> Self {
         self.max_width = Some(val);
         self
@@ -485,7 +456,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         
         for width in 6..=13 {
-            let config = FmtFloatConfig::human()
+            let config = FmtFloatConfig::default()
                 .max_width(width);
             for _ in 0..10000 {
                 let val = f64::from_bits(rng.gen::<u64>());
@@ -517,10 +488,10 @@ mod tests {
         let configs = &[
             FmtFloatConfig::default(),
             FmtFloatConfig::default()
-                .force_no_e_notation(true)
+                .force_no_e_notation()
                 .add_point_zero(true),
             FmtFloatConfig::default()
-                .force_e_notation(true),
+                .force_e_notation(),
         ];
         for _ in 0..20000 {
             for config in configs.iter().cloned() {
@@ -542,10 +513,10 @@ mod tests {
         let configs = &[
             FmtFloatConfig::default(),
             FmtFloatConfig::default()
-                .force_no_e_notation(true)
+                .force_no_e_notation()
                 .add_point_zero(true),
             FmtFloatConfig::default()
-                .force_e_notation(true),
+                .force_e_notation(),
         ];
         for _ in 0..20000 {
             for config in configs.iter().cloned() {
@@ -610,14 +581,14 @@ mod tests {
         let config = FmtFloatConfig::default()
             .max_decimal_digits(-3)
             .truncate()
-            .force_no_e_notation(true)
+            .force_no_e_notation()
             .add_point_zero(true);
         assert_eq!(dtoa(123123.0, config), "123000.0");
         assert_eq!(dtoa(99999.0, config), "99000.0");
         let config = FmtFloatConfig::default()
             .max_decimal_digits(-3)
             .round()
-            .force_no_e_notation(true)
+            .force_no_e_notation()
             .add_point_zero(true);
         assert_eq!(dtoa(123123.0, config), "123000.0");
         assert_eq!(dtoa(123923.0, config), "124000.0");
@@ -676,7 +647,7 @@ mod tests {
     #[test]
     fn test_force_e_notation() {
         let config = FmtFloatConfig::default()
-            .force_e_notation(true);
+            .force_e_notation();
         assert_eq!(dtoa(1.0, config), "1.0e0");
         assert_eq!(dtoa(15.0, config), "1.5e1");
         assert_eq!(dtoa(0.150, config), "1.5e-1");
@@ -685,7 +656,7 @@ mod tests {
     #[test]
     fn test_force_no_e_notation() {
         let config = FmtFloatConfig::default()
-            .force_no_e_notation(true)
+            .force_no_e_notation()
             .add_point_zero(false);
         let s = format!("{}", 1.123e20);
         assert_eq!(dtoa(1.123e20, config), s);

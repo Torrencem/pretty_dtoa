@@ -5,7 +5,7 @@ Configurable float and double printing. ``pretty_dtoa`` Comes with tons of optio
 
 This crate uses a fork of the [ryu crate](https://github.com/dtolnay/ryu) that makes some of the internal modules public. It uses the fast ryu algorithm to generate a "floating decimal", or a floating point with radix 10, and then it uses formatting rules particular to the configuration to create a formatted string.
 
-This module is slightly slow (usually between 1.5x and 2.5x slower than the default Display implementation for f64). Benchmarks can be run with ``cargo bench``.
+This module is slightly slow (usually between 1.5x and 3x slower than the default Display implementation for f64). Benchmarks can be run with ``cargo bench``.
 
 Consider using ``pretty_dtoa`` if:
 
@@ -19,7 +19,7 @@ Consider using ``pretty_dtoa`` if:
 use pretty_dtoa::{dtoa, FmtFloatConfig};
 
 let config = FmtFloatConfig::default()
-     .force_no_e_notation(true)  // Don't use scientific notation
+     .force_no_e_notation()      // Don't use scientific notation
      .add_point_zero(true)       // Add .0 to the end of integers
      .max_significant_digits(4)  // Stop after the first 4 non-zero digits
      .radix_point(',')           // Use a ',' instead of a '.'
@@ -27,3 +27,5 @@ let config = FmtFloatConfig::default()
 
  assert_eq!(dtoa(12459000.0, config), "12460000,0");
 ```
+
+See the tests in ``src/lib.rs`` for more examples.
