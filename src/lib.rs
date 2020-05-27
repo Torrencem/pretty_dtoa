@@ -324,8 +324,8 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
         }
     }
     if use_e_notation {
-        let mut tail_as_str: String = s.drain(1..).map(|val| val as char).collect();
         if let Some(max_width) = config.max_width {
+            let mut tail_as_str: String = s.drain(1..).map(|val| val as char).collect();
             let e_length = format!("{}", e - 1).len();
             let extra_length = 3 + e_length + if sign { 1 } else { 0 };
             if extra_length >= max_width as usize {
@@ -333,35 +333,35 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
             } else { 
                 tail_as_str.truncate(max_width as usize - extra_length);
             }
+            if tail_as_str.len() == 0 && max_width == 7 && sign {
+                return format!("-{}{}{}",
+                               s[0] as char,
+                               if config.capitalize_e { "E" } else { "e" },
+                               e - 1);
+            }
         }
-        // Special case
-        if tail_as_str.len() == 0 && config.max_width == Some(7) && sign {
-            return format!("-{}{}{}",
-                           s[0] as char,
-                           if config.capitalize_e { "E" } else { "e" },
-                           e - 1);
+        let mut res = String::with_capacity(s.len() + 5);
+        if sign {
+            res.push('-');
+        }
+        res.push(s[0] as char);
+        res.push('.');
+        if s.len() == 1 {
+            if !config.max_width.is_some() {
+                res.push('0');
+            }
         } else {
-            let mut res = String::with_capacity(s.len() + 5);
-            if sign {
-                res.push('-');
+            for c in &s[1..] {
+                res.push(*c as char);
             }
-            res.push(s[0] as char);
-            res.push('.');
-            if tail_as_str.len() == 0 {
-                if !config.max_width.is_some() {
-                    res.push('0');
-                }
-            } else {
-                res.push_str(tail_as_str.as_ref());
-            }
-            if config.capitalize_e {
-                res.push('E');
-            } else {
-                res.push('e');
-            }
-            res.push_str(format!("{}", e - 1).as_ref());
-            return res;
         }
+        if config.capitalize_e {
+            res.push('E');
+        } else {
+            res.push('e');
+        }
+        res.push_str(format!("{}", e - 1).as_ref());
+        return res;
     }
     let mut as_str = String::with_capacity(s.len() + 3);
     if sign {
