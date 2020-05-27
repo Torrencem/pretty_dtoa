@@ -62,6 +62,8 @@ pub struct FmtFloatConfig {
     /// the float. This will try to respect all other options, unless
     /// they would make the string too long. values less than 5 are not allowed
     max_width: Option<u8>,
+    /// The seperator between the integer and non-integer part
+    radix_point: char,
 }
 
 impl FmtFloatConfig {
@@ -80,6 +82,7 @@ impl FmtFloatConfig {
             capitalize_e: false,
             add_point_zero: false,
             max_width: None,
+            radix_point: '.',
         }
     }
 
@@ -98,6 +101,7 @@ impl FmtFloatConfig {
             capitalize_e: false,
             add_point_zero: false,
             max_width: None,
+            radix_point: '.',
         }
     }
 
@@ -203,6 +207,13 @@ impl FmtFloatConfig {
     /// will print correctly, but can be smaller for certain floats
     pub const fn max_width(mut self, val: u8) -> Self {
         self.max_width = Some(val);
+        self
+    }
+    
+    /// The seperator between the integer and non-integer part
+    /// of the float string (default: '.')
+    pub const fn radix_point(mut self, val: char) -> Self {
+        self.radix_point = val;
         self
     }
 }
@@ -374,7 +385,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
             res.push('-');
         }
         res.push(s[0] as char);
-        res.push('.');
+        res.push(config.radix_point);
         if s.len() == 1 {
             if !config.max_width.is_some() {
                 res.push('0');
@@ -399,14 +410,14 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
     let mut curr = 0;
     if e <= 0 {
         as_str.push('0');
-        as_str.push('.');
+        as_str.push(config.radix_point);
         for _ in 0..-e {
             as_str.push('0');
         }
     }
     for digit in s {
         if e > 0 && curr == e {
-            as_str.push('.');
+            as_str.push(config.radix_point);
         }
         as_str.push(digit as char);
         curr += 1;
@@ -417,7 +428,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
         curr += 1;
     }
     if is_integer && config.add_point_zero {
-        as_str.push('.');
+        as_str.push(config.radix_point);
         as_str.push('0');
     }
 
@@ -688,10 +699,13 @@ mod tests {
         assert_eq!(dtoa(-0.0324, config), "-0.032");
     }
 
-    // #[test]
-    // fn test_specific() {
-    //     let config = FmtFloatConfig::human()
-    //         .max_width(8);
-    //     println!("p: {}", dtoa(0.00024027723047814753, config));
-    // }
+    #[test]
+    fn test_radix_point() {
+        let config = FmtFloatConfig::default()
+            .radix_point(',')
+            .add_point_zero(true);
+        assert_eq!(dtoa(123.4, config), "123,4");
+        assert_eq!(dtoa(1.3e10, config), "1,3e10");
+        assert_eq!(dtoa(123.0, config), "123,0");
+    }
 }
