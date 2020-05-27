@@ -3,6 +3,8 @@
 use ryu::d2s;
 use ryu::f2s;
 
+/// A wrapper around ryu's number conversion function ``d2d`` (normally private)
+/// Converts an ``f64`` to a sign, a string of digits, and an exponent.
 #[inline]
 pub fn dtod(val: f64) -> (bool, String, i32) {
     let bits = val.to_bits();
@@ -18,6 +20,8 @@ pub fn dtod(val: f64) -> (bool, String, i32) {
     (sign, as_digits, exp)
 }
 
+/// A wrapper around ryu's number conversion function ``f2d`` (normally private)
+/// Converts an ``f32`` to a sign, a string of digits, and an exponent.
 #[inline]
 pub fn ftod(val: f32) -> (bool, String, i32) {
     let bits = val.to_bits();
