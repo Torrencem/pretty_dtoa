@@ -341,12 +341,26 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
                            if config.capitalize_e { "E" } else { "e" },
                            e - 1);
         } else {
-            return format!("{}{}.{}{}{}",
-                           if sign { "-" } else { "" },
-                           s[0] as char,
-                           if tail_as_str.len() == 0 { if config.max_width.is_some() { "" } else { "0" } } else { tail_as_str.as_ref() }, 
-                           if config.capitalize_e { "E" } else { "e" },
-                           e - 1);
+            let mut res = String::with_capacity(s.len() + 5);
+            if sign {
+                res.push('-');
+            }
+            res.push(s[0] as char);
+            res.push('.');
+            if tail_as_str.len() == 0 {
+                if !config.max_width.is_some() {
+                    res.push('0');
+                }
+            } else {
+                res.push_str(tail_as_str.as_ref());
+            }
+            if config.capitalize_e {
+                res.push('E');
+            } else {
+                res.push('e');
+            }
+            res.push_str(format!("{}", e - 1).as_ref());
+            return res;
         }
     }
     let mut as_str = String::with_capacity(s.len() + 3);
