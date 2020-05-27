@@ -4,12 +4,26 @@ pub mod raw;
 use std::char;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum RoundMode {
+enum RoundMode {
     Round,
     Truncate,
 }
 
-/// A configuration for formatting floats into strings
+/// Configuration for formatting floats into strings
+///
+/// # Example
+///
+/// ```
+/// use pretty_dtoa::{dtoa, FmtFloatConfig};
+///
+/// let config = FmtFloatConfig::default()
+///     .force_no_e_notation(true)  // Don't use scientific notation
+///     .add_point_zero(true)       // Add .0 to the end of integers
+///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
+///     .round();                   // Round after removing non-significant digits
+///
+/// assert_eq!(dtoa(12459000.0, config), "12460000.0");
+/// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FmtFloatConfig {
     /// A max number of significant digits to include
@@ -184,7 +198,9 @@ impl FmtFloatConfig {
         self
     }
     
-    /// The maximum number of non-zero digits to include in the string
+    /// The maximum width of all the characters in the string. This
+    /// should be greater than or equal to 7 to guarantee all floats
+    /// will print correctly, but can be smaller for certain floats
     pub const fn max_width(mut self, val: u8) -> Self {
         self.max_width = Some(val);
         self
@@ -409,14 +425,18 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
 
 }
 
+/// Convert a double-precision floating point value (``f64``) to a string
+/// using a given configuration
 pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     let (sign, s, e) = raw::dtod(value);
-    digits_to_a(sign, s, e, config)
+    digits_to_a(sign, s.into_bytes(), e, config)
 }
 
+/// Convert a single-precision floating point value (``f32``) to a string
+/// using a given configuration
 pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
     let (sign, s, e) = raw::ftod(value);
-    digits_to_a(sign, s, e, config)
+    digits_to_a(sign, s.into_bytes(), e, config)
 }
 
 #[cfg(test)]
