@@ -20,9 +20,10 @@ enum RoundMode {
 ///     .force_no_e_notation(true)  // Don't use scientific notation
 ///     .add_point_zero(true)       // Add .0 to the end of integers
 ///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
+///     .radix_point(',')           // Use a ',' instead of a '.'
 ///     .round();                   // Round after removing non-significant digits
 ///
-/// assert_eq!(dtoa(12459000.0, config), "12460000.0");
+/// assert_eq!(dtoa(12459000.0, config), "12460000,0");
 /// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FmtFloatConfig {
