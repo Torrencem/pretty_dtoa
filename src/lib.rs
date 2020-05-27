@@ -427,12 +427,16 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
     }
 
     as_str
-
 }
 
 /// Convert a double-precision floating point value (``f64``) to a string
 /// using a given configuration
 pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
+    if value.is_nan() {
+        return "nan".to_string();
+    } else if value.is_infinite() {
+        return "inf".to_string();
+    }
     let (sign, s, e) = raw::dtod(value);
     digits_to_a(sign, s.into_bytes(), e, config)
 }
@@ -440,6 +444,15 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
 /// Convert a single-precision floating point value (``f32``) to a string
 /// using a given configuration
 pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
+    if value.is_nan() {
+        return "nan".to_string();
+    } else if value.is_infinite() {
+        if value.is_sign_positive() {
+            return "inf".to_string();
+        } else {
+            return "-inf".to_string();
+        }
+    }
     let (sign, s, e) = raw::ftod(value);
     digits_to_a(sign, s.into_bytes(), e, config)
 }
