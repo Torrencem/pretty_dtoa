@@ -208,14 +208,19 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
                 } else {
                     nine_counter += 1;
                     if nine_counter >= limit {
+                        // 14999...
                         stripped_string.drain((stripped_string.len() + 1 - nine_counter as usize)..);
+                        // -> 14
                         let l = stripped_string.len();
                         if l == 0 {
+                            // for strings like 999
+                            // 999e3 -> 1e4
                             stripped_string.push(digit_to_u8(1));
                             e += 1;
                         } else {
                             // Rounding doesn't have to happen here, because what was removed
                             // was exactly limit 9's
+                            // 15
                             stripped_string[l - 1] += 1;
                         }
                         break;
@@ -227,7 +232,9 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
                 } else {
                     zero_counter += 1;
                     if zero_counter >= limit {
+                        // 14000...
                         stripped_string.drain((stripped_string.len() + 1 - zero_counter as usize)..);
+                        // 14
                         break;
                     }
                 }
@@ -235,6 +242,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
             if let Some(limit) = config.max_sig_digits {
                 if curr + 1 > limit {
                     if *digit >= digit_to_u8(5) && config.round_mode == RoundMode::Round {
+                        // round up
                         let mut l = stripped_string.len() - 1;
                         stripped_string[l] += 1;
                         while stripped_string[l] == digit_to_u8(10) {
@@ -257,6 +265,8 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
         s = stripped_string;
     }
     if let Some(limit) = config.min_sig_digits {
+        // 123 -> 12300
+        // (min_sig_digits = 5)
         let mut curr = s.len() as u8;
         while curr < limit {
             s.push(digit_to_u8(0));
@@ -264,6 +274,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
         }
     }
     if let Some(limit) = config.min_decimal_digits {
+        // 1230 -> 1230.00
         let adjusted_limit_position = limit as i32 + e;
         while (s.len() as i32) < adjusted_limit_position {
             s.push(digit_to_u8(0));
@@ -274,6 +285,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
         if (0 <= adjusted_limit_position) && (adjusted_limit_position < s.len() as i32) {
             let final_char = s.drain(adjusted_limit_position as usize ..).nth(0).unwrap();
             if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
+                // round up
                 let mut l = s.len() - 1;
                 s[l] += 1;
                 while s[l] == digit_to_u8(10) {
@@ -307,6 +319,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
             if total_length > max_width as usize {
                 let final_char = s.drain((max_width as usize - extra_length as usize)..).nth(0).unwrap();
                 if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
+                    // round up
                     let mut l = s.len() - 1;
                     s[l] += 1;
                     while s[l] == digit_to_u8(10) {
@@ -444,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn test_round_trip() {
+    fn test_round_trip_dtoa() {
         let mut rng = rand::thread_rng();
         
         let configs = &[
@@ -463,6 +476,31 @@ mod tests {
                 }
                 let as_string = dtoa(val, config);
                 let round = as_string.parse::<f64>().unwrap();
+                assert!(round == val, "Found bad example for round trip: value '{}' gives string '{}' which turns into value '{}'", val, as_string, round);
+            }
+        }
+    }
+    
+    #[test]
+    fn test_round_trip_ftoa() {
+        let mut rng = rand::thread_rng();
+        
+        let configs = &[
+            FmtFloatConfig::default(),
+            FmtFloatConfig::default()
+                .force_no_e_notation(true)
+                .add_point_zero(true),
+            FmtFloatConfig::default()
+                .force_e_notation(true),
+        ];
+        for _ in 0..20000 {
+            for config in configs.iter().cloned() {
+                let val = f32::from_bits(rng.gen::<u32>());
+                if val.is_nan() {
+                    continue;
+                }
+                let as_string = ftoa(val, config);
+                let round = as_string.parse::<f32>().unwrap();
                 assert!(round == val, "Found bad example for round trip: value '{}' gives string '{}' which turns into value '{}'", val, as_string, round);
             }
         }
