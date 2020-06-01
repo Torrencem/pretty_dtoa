@@ -1,3 +1,17 @@
+//! Print floats with many options:
+//!
+//! ```
+//! use pretty_dtoa::{dtoa, FmtFloatConfig};
+//!
+//! let config = FmtFloatConfig::default()
+//!     .force_no_e_notation()      // Don't use scientific notation
+//!     .add_point_zero(true)       // Add .0 to the end of integers
+//!     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
+//!     .radix_point(',')           // Use a ',' instead of a '.'
+//!     .round();                   // Round after removing non-significant digits
+//!
+//! assert_eq!(dtoa(12459000.0, config), "12460000,0");
+//! ```
 
 use ryu_floating_decimal::{f2d, d2d};
 use std::char;
@@ -16,7 +30,7 @@ pub enum RoundMode {
 /// use pretty_dtoa::{dtoa, FmtFloatConfig};
 ///
 /// let config = FmtFloatConfig::default()
-///     .force_no_e_notation()  // Don't use scientific notation
+///     .force_no_e_notation()      // Don't use scientific notation
 ///     .add_point_zero(true)       // Add .0 to the end of integers
 ///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
 ///     .radix_point(',')           // Use a ',' instead of a '.'
@@ -437,7 +451,7 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
 /// use pretty_dtoa::{dtoa, FmtFloatConfig};
 ///
 /// let config = FmtFloatConfig::default()
-///     .force_no_e_notation()  // Don't use scientific notation
+///     .force_no_e_notation()      // Don't use scientific notation
 ///     .add_point_zero(true)       // Add .0 to the end of integers
 ///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
 ///     .radix_point(',')           // Use a ',' instead of a '.'
