@@ -4,13 +4,13 @@
 //! use pretty_dtoa::{dtoa, FmtFloatConfig};
 //!
 //! let config = FmtFloatConfig::default()
-//!     .force_no_e_notation()      // Don't use scientific notation
-//!     .add_point_zero(true)       // Add .0 to the end of integers
-//!     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
-//!     .radix_point(',')           // Use a ',' instead of a '.'
-//!     .round();                   // Round after removing non-significant digits
+//!       .max_decimal_digits(-3)   // cut off at 3 decimals left of the decimal point
+//!       .truncate()               // don't round
+//!       .force_no_e_notation()    // don't use exponential notation
+//!       .add_point_zero(true);    // add a .0 to the end of integer values
 //!
-//! assert_eq!(dtoa(12459000.0, config), "12460000,0");
+//! assert_eq!(dtoa(123123.0, config), "123000.0");
+//! assert_eq!(dtoa(99999.0, config), "99000.0");
 //! ```
 
 use ryu_floating_decimal::{f2d, d2d};
@@ -30,13 +30,10 @@ pub enum RoundMode {
 /// use pretty_dtoa::{dtoa, FmtFloatConfig};
 ///
 /// let config = FmtFloatConfig::default()
-///     .force_no_e_notation()      // Don't use scientific notation
-///     .add_point_zero(true)       // Add .0 to the end of integers
-///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
-///     .radix_point(',')           // Use a ',' instead of a '.'
-///     .round();                   // Round after removing non-significant digits
+///     .round()
+///     .max_significant_digits(5);
 ///
-/// assert_eq!(dtoa(12459000.0, config), "12460000,0");
+/// assert_eq!(dtoa(123.4567, config), "123.46");
 /// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FmtFloatConfig {
