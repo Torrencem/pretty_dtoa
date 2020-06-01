@@ -1,6 +1,5 @@
 
-pub mod raw;
-
+use ryu_floating_decimal::{f2d, d2d};
 use std::char;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -433,19 +432,22 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
 /// using a given configuration
 pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     if value.is_nan() {
-        return "nan".to_string();
+        return "NaN".to_string();
     } else if value.is_infinite() {
         return "inf".to_string();
     }
-    let (sign, s, e) = raw::dtod(value);
-    digits_to_a(sign, s.into_bytes(), e, config)
+    let rad_10 = d2d(value);
+    let sign = value.is_sign_negative();
+    let s = format!("{}", rad_10.mantissa);
+    let exp = rad_10.exponent + s.len()as i32;
+    digits_to_a(sign, s.into_bytes(), exp, config)
 }
 
 /// Convert a single-precision floating point value (``f32``) to a string
 /// using a given configuration
 pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
     if value.is_nan() {
-        return "nan".to_string();
+        return "NaN".to_string();
     } else if value.is_infinite() {
         if value.is_sign_positive() {
             return "inf".to_string();
@@ -453,8 +455,11 @@ pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
             return "-inf".to_string();
         }
     }
-    let (sign, s, e) = raw::ftod(value);
-    digits_to_a(sign, s.into_bytes(), e, config)
+    let rad_10 = f2d(value);
+    let sign = value.is_sign_negative();
+    let s = format!("{}", rad_10.mantissa);
+    let exp = rad_10.exponent + s.len()as i32;
+    digits_to_a(sign, s.into_bytes(), exp, config)
 }
 
 #[cfg(test)]

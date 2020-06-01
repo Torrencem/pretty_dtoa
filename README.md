@@ -3,9 +3,9 @@
 
 Configurable float and double printing. ``pretty_dtoa`` Comes with lots of options for configuring different aspects of displaying floats.
 
-This crate uses a fork of the [ryu crate](https://github.com/dtolnay/ryu) that makes some of the internal modules public. It uses the fast ryu algorithm to generate a "floating decimal", or a floating point with radix 10, and then it uses formatting rules particular to the configuration to create a formatted string.
+This crate uses the [ryu-floating-decimal crate](https://github.com/Torrencem/ryu-floating-decimal) (itself a fork of the [ryu crate](https://github.com/dtolnay/ryu)) to generate a "floating decimal", or a floating point with radix 10, and then it uses formatting rules particular to the configuration to create a formatted string.
 
-This module is slightly slow (usually between 1.5x and 3x slower than the default Display implementation for f64). Benchmarks can be run with ``cargo bench``.
+This module is slightly slow (usually between 1x and 2x slower than the default Display implementation for f64). Benchmarks can be run with ``cargo bench``.
 
 Consider using ``pretty_dtoa`` if:
 
@@ -28,4 +28,4 @@ let config = FmtFloatConfig::default()
  assert_eq!(dtoa(12459000.0, config), "12460000,0");
 ```
 
-See the tests in ``src/lib.rs`` for more examples.
+See the tests in ``src/lib.rs`` for examples of each feature, and [the documentation](https://docs.rs/pretty_dtoa) to see all configurable features.
