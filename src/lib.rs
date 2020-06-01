@@ -430,6 +430,21 @@ fn digits_to_a(sign: bool, mut s: Vec<u8>, mut e: i32, config: FmtFloatConfig) -
 
 /// Convert a double-precision floating point value (``f64``) to a string
 /// using a given configuration
+///
+/// # Example
+/// 
+/// ```
+/// use pretty_dtoa::{dtoa, FmtFloatConfig};
+///
+/// let config = FmtFloatConfig::default()
+///     .force_no_e_notation()  // Don't use scientific notation
+///     .add_point_zero(true)       // Add .0 to the end of integers
+///     .max_significant_digits(4)  // Stop after the first 4 non-zero digits
+///     .radix_point(',')           // Use a ',' instead of a '.'
+///     .round();                   // Round after removing non-significant digits
+///
+/// assert_eq!(dtoa(12459000.0, config), "12460000,0");
+/// ```
 pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     if value.is_nan() {
         return "NaN".to_string();
