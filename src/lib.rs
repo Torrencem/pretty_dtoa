@@ -38,11 +38,11 @@ pub enum RoundMode {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FmtFloatConfig {
     /// A max number of significant digits to include
-    /// in the formatted string (after the first non-zero digit)
+    /// in the formatted string (after the first non-zero digit).
     /// None means include all digits
     pub max_sig_digits: Option<u8>,
     /// A min number of significant digits to include
-    /// in the formatted string (after the first non-zero digit)
+    /// in the formatted string (after the first non-zero digit).
     /// None means no minimum
     pub min_sig_digits: Option<u8>,
     /// A max number of digits after the decimal point to include.
@@ -143,7 +143,7 @@ impl FmtFloatConfig {
     /// consecutive 9's or 0's. This is useful for printing
     /// numbers with floating point errors to humans, even
     /// if the numbers are technically slightly adjusted.
-    /// 3.59999951 -> 3.6
+    /// (example: 3.5999951 -> 3.6)
     pub const fn ignore_extremes(mut self, limit: u8) -> Self {
         self.ignore_extremes = Some(limit);
         self
@@ -151,7 +151,7 @@ impl FmtFloatConfig {
     
     /// When cutting off after a certain number of
     /// significant digits, ignore any further digits.
-    /// Opposite of ``round()``.
+    /// Opposite of ``round(self)``.
     pub const fn truncate(mut self) -> Self {
         self.round_mode = RoundMode::Truncate;
         self
@@ -167,32 +167,32 @@ impl FmtFloatConfig {
         self
     }
 
-    /// Force all floats to be in scientific notation
-    /// 31 -> 3.1e1
+    /// Force all floats to be in scientific notation.
+    /// (example: 31 -> 3.1e1)
     pub const fn force_e_notation(mut self) -> Self {
         self.force_e_notation = true;
         self.force_no_e_notation = false;
         self
     }
     
-    /// Force all floats to not be in scientific notation
-    /// 3e10 -> 30000000000
+    /// Force all floats to not be in scientific notation.
+    /// (example: 3e10 -> 30000000000)
     pub const fn force_no_e_notation(mut self) -> Self {
         self.force_no_e_notation = true;
         self.force_e_notation = false;
         self
     }
     
-    /// Capitalize the e in e notation
-    /// 3.1e10 -> 3.1E10
+    /// Capitalize the e in e notation.
+    /// (example: 3.1e10 -> 3.1E10)
     /// (default: false)
     pub const fn capitalize_e(mut self, val: bool) -> Self {
         self.capitalize_e = val;
         self
     }
     
-    /// Add a ".0" at the end of integers
-    /// 31 -> 31.0
+    /// Add a ".0" at the end of integers.
+    /// (example: 31 -> 31.0)
     /// (default: true)
     pub const fn add_point_zero(mut self, val: bool) -> Self {
         self.add_point_zero = val;
@@ -215,7 +215,7 @@ impl FmtFloatConfig {
     
     /// The seperator between the integer and non-integer part
     /// of the float string
-    /// (default: '.')
+    /// (default: `'.'`)
     pub const fn radix_point(mut self, val: char) -> Self {
         self.radix_point = val;
         self
