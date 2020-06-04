@@ -13,6 +13,58 @@
 //! assert_eq!(dtoa(99999.0, config), "99000.0");
 //! ```
 
+// Testing macros, to make sure edge cases are hit
+
+#[cfg(not(test))]
+macro_rules! hit {
+    ($ident:ident) => {}
+}
+
+// Mark a code condition as hit
+#[cfg(test)]
+macro_rules! hit {
+    ($ident:ident) => {{
+        extern "C" {
+            #[no_mangle]
+            static $ident: $crate::__rt::AtomicUsize;
+        }
+        unsafe {
+            $ident.fetch_add(1, $crate::__rt::Ordering::Relaxed);
+        }
+    }};
+}
+
+#[cfg(test)]
+mod __rt {
+    pub use std::sync::atomic::{AtomicUsize, Ordering};
+
+    pub struct Guard {
+        mark: &'static AtomicUsize,
+        name: &'static str,
+        value_on_entry: usize,
+    }
+
+    impl Guard {
+        pub fn new(mark: &'static AtomicUsize, name: &'static str) -> Guard {
+            let value_on_entry = mark.load(Ordering::Relaxed);
+            Guard { mark, name, value_on_entry }
+        }
+    }
+
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            if std::thread::panicking() {
+                return;
+            }
+            let value_on_exit = self.mark.load(Ordering::Relaxed);
+            assert!(
+                value_on_exit > self.value_on_entry,
+                format!("mark was not hit: {}", self.name)
+            )
+        }
+    }
+}
+
 use ryu_floating_decimal::{f2d, d2d};
 use std::char;
 
@@ -341,10 +393,13 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
         let max_width = if sign { max_width - 1 } else { max_width };
         // Is it impossible to represent the value without e notation?
         if e > 0 && e + if config.add_point_zero { 2 } else { 0 } > max_width as i32 {
+            hit!(e_width_case_a);
             use_e_notation = true;
         } else if -e + 3 > max_width as i32 {
+            hit!(e_width_case_b);
             use_e_notation = true;
         } else if !use_e_notation {
+            hit!(e_width_case_c);
             // Otherwise, prepare to not use e notation
             let is_integer = e > digits.len() as i32;
             let extra_length = if config.add_point_zero && is_integer { 2 } else { 0 }
@@ -375,8 +430,6 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
     // Final formatting stage
     if use_e_notation {
         if let Some(max_width) = config.max_width {
-            // Very special case: can't include a decimal point
-            // within max_width
             let mut tail_as_str: String = digits.drain(1..).map(|val| val as char).collect();
             let e_length = format!("{}", e - 1).len();
             let extra_length = 3 + e_length + if sign { 1 } else { 0 };
@@ -385,13 +438,19 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
             } else { 
                 tail_as_str.truncate(max_width as usize - extra_length);
             }
+            // Very special case: can't include a decimal point
+            // within max_width
             if tail_as_str.len() == 0 && max_width == 7 && sign {
                 return format!("-{}{}{}",
                                digits[0] as char,
                                if config.capitalize_e { "E" } else { "e" },
                                e - 1);
             }
-        }
+            // Defer to the generic e-notation case
+            for c in tail_as_str.chars() {
+                digits.push(c as u8);
+            }
+        } 
         // Generic e-notation case
         let mut res = String::with_capacity(digits.len() + 5);
         if sign {
@@ -500,6 +559,16 @@ pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
 
 #[cfg(test)]
 mod tests {
+    // Macro for checking coverage marks
+    macro_rules! check {
+        ($ident:ident) => {
+            #[no_mangle]
+            static $ident: $crate::__rt::AtomicUsize =
+                $crate::__rt::AtomicUsize::new(0);
+            let _guard = $crate::__rt::Guard::new(&$ident, stringify!($ident));
+        }
+    }
+
     use super::*;
 
     use rand;
@@ -758,11 +827,20 @@ mod tests {
 
     #[test]
     fn test_max_width_specifics() {
+        check!(e_width_case_a);
+        check!(e_width_case_b);
+        check!(e_width_case_c);
         let config = FmtFloatConfig::default()
-            .max_width(6);
+            .max_width(6)
+            .force_no_e_notation();
         assert_eq!(dtoa(123.4533, config), "123.45");
         assert_eq!(dtoa(0.00324, config), "0.0032");
         assert_eq!(dtoa(-0.0324, config), "-0.032");
+        let config = FmtFloatConfig::default()
+            .max_width(8)
+            .force_no_e_notation();
+        assert_eq!(dtoa(3.24e-10, config), "3.24e-10");
+        assert_eq!(dtoa(3.24e10, config), "3.24e10");
     }
 
     #[test]
