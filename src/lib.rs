@@ -17,7 +17,7 @@
 
 #[cfg(not(test))]
 macro_rules! hit {
-    ($ident:ident) => {}
+    ($ident:ident) => {};
 }
 
 // Mark a code condition as hit
@@ -47,7 +47,11 @@ mod __rt {
     impl Guard {
         pub fn new(mark: &'static AtomicUsize, name: &'static str) -> Guard {
             let value_on_entry = mark.load(Ordering::Relaxed);
-            Guard { mark, name, value_on_entry }
+            Guard {
+                mark,
+                name,
+                value_on_entry,
+            }
         }
     }
 
@@ -65,7 +69,7 @@ mod __rt {
     }
 }
 
-use ryu_floating_decimal::{f2d, d2d};
+use ryu_floating_decimal::{d2d, f2d};
 use std::char;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -98,10 +102,8 @@ pub struct FmtFloatConfig {
     /// None means no minimum
     pub min_sig_digits: Option<u8>,
     /// A max number of digits after the decimal point to include.
-    /// Overrides any significant digit rules
     pub max_decimal_digits: Option<i8>,
     /// A min number of digits after the decimal point to include.
-    /// Overrides any significant digit rules
     pub min_decimal_digits: Option<i8>,
     /// How many digits left of the decimal point there can be
     /// using scientific notation
@@ -130,7 +132,6 @@ pub struct FmtFloatConfig {
 }
 
 impl FmtFloatConfig {
-    
     /// A default configuration. This will always round-trip, so
     /// using ``str::parse::<f64>`` or ``str::parse:<f32>`` will
     /// give the exact same float.
@@ -158,7 +159,7 @@ impl FmtFloatConfig {
         self.max_sig_digits = Some(val);
         self
     }
-    
+
     /// The minimum number of non-zero digits to include in the string
     pub const fn min_significant_digits(mut self, val: u8) -> Self {
         self.min_sig_digits = Some(val);
@@ -170,13 +171,13 @@ impl FmtFloatConfig {
         self.max_decimal_digits = Some(val);
         self
     }
-    
+
     /// The minimum number of digits past the decimal point to include in the string
     pub const fn min_decimal_digits(mut self, val: i8) -> Self {
         self.min_decimal_digits = Some(val);
         self
     }
-    
+
     /// The upper exponent value that will force using exponent notation
     /// (default: 4)
     pub const fn upper_e_break(mut self, val: i8) -> Self {
@@ -200,7 +201,7 @@ impl FmtFloatConfig {
         self.ignore_extremes = Some(limit);
         self
     }
-    
+
     /// When cutting off after a certain number of
     /// significant digits, ignore any further digits.
     /// Opposite of ``round(self)``.
@@ -208,10 +209,10 @@ impl FmtFloatConfig {
         self.round_mode = RoundMode::Truncate;
         self
     }
-    
+
     /// When cutting off after a certain number of
     /// significant digits / decimal digits, read
-    /// the next digit and round up / down. This is 
+    /// the next digit and round up / down. This is
     /// the default, but it doesn't matter in the
     /// default config, since no rounding happens.
     pub const fn round(mut self) -> Self {
@@ -226,7 +227,7 @@ impl FmtFloatConfig {
         self.force_no_e_notation = false;
         self
     }
-    
+
     /// Force all floats to not be in scientific notation.
     /// (example: 3e10 -> 30000000000)
     pub const fn force_no_e_notation(mut self) -> Self {
@@ -234,7 +235,7 @@ impl FmtFloatConfig {
         self.force_e_notation = false;
         self
     }
-    
+
     /// Capitalize the e in e notation.
     /// (example: 3.1e10 -> 3.1E10)
     /// (default: false)
@@ -242,7 +243,7 @@ impl FmtFloatConfig {
         self.capitalize_e = val;
         self
     }
-    
+
     /// Add a ".0" at the end of integers.
     /// (example: 31 -> 31.0)
     /// (default: true)
@@ -250,7 +251,7 @@ impl FmtFloatConfig {
         self.add_point_zero = val;
         self
     }
-    
+
     /// The maximum width of all the characters in the string. This
     /// should be greater than or equal to 7 to guarantee all floats
     /// will print correctly, but can be smaller for certain floats.
@@ -260,13 +261,13 @@ impl FmtFloatConfig {
         self.max_width = Some(val);
         self
     }
-    
+
     /// Allows any width of strings. This is set by default
     pub const fn no_max_width(mut self) -> Self {
         self.max_width = None;
         self
     }
-    
+
     /// The seperator between the integer and non-integer part
     /// of the float string
     /// (default: `'.'`)
@@ -311,7 +312,10 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
         // Remove extra decimal digits
         let adjusted_limit_position = limit as i32 + e;
         if (0 <= adjusted_limit_position) && (adjusted_limit_position < digits.len() as i32) {
-            let final_char = digits.drain(adjusted_limit_position as usize ..).nth(0).unwrap();
+            let final_char = digits
+                .drain(adjusted_limit_position as usize..)
+                .nth(0)
+                .unwrap();
             if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
                 // round up
                 let mut l = digits.len() - 1;
@@ -389,7 +393,10 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
             digits.push(digit_to_u8(0));
         }
     }
-    let mut use_e_notation = (e > config.upper_e_break as i32 || e <= config.lower_e_break as i32 || config.force_e_notation) && !config.force_no_e_notation;
+    let mut use_e_notation = (e > config.upper_e_break as i32
+        || e <= config.lower_e_break as i32
+        || config.force_e_notation)
+        && !config.force_no_e_notation;
     if let Some(max_width) = config.max_width {
         // Check if it is needed to force using e notation for max width
         let max_width = if sign { max_width - 1 } else { max_width };
@@ -404,13 +411,25 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
             hit!(e_width_case_c);
             // Otherwise, prepare to not use e notation
             let is_integer = e > digits.len() as i32;
-            let extra_length = if config.add_point_zero && is_integer { 2 } else { 0 }
-                             + if !is_integer && !(e > 0 && e as u8 == max_width) { 1 } else { 0 }
-                             + if e > 0 && digits.len() < e as usize { e - digits.len() as i32 } else { 0 }
-                             + if e <= 0 { -e + 1 } else { 0 };
+            let extra_length = if config.add_point_zero && is_integer {
+                2
+            } else {
+                0
+            } + if !is_integer && !(e > 0 && e as u8 == max_width) {
+                1
+            } else {
+                0
+            } + if e > 0 && digits.len() < e as usize {
+                e - digits.len() as i32
+            } else {
+                0
+            } + if e <= 0 { -e + 1 } else { 0 };
             let total_length = digits.len() + extra_length as usize;
             if total_length > max_width as usize {
-                let final_char = digits.drain((max_width as usize - extra_length as usize)..).nth(0).unwrap();
+                let final_char = digits
+                    .drain((max_width as usize - extra_length as usize)..)
+                    .nth(0)
+                    .unwrap();
                 if config.round_mode == RoundMode::Round && final_char >= digit_to_u8(5) {
                     // round up
                     let mut l = digits.len() - 1;
@@ -438,7 +457,7 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
             let extra_length = 3 + e_length + if sign { 1 } else { 0 };
             if extra_length >= max_width as usize {
                 tail_as_str.drain(..);
-            } else { 
+            } else {
                 tail_as_str.truncate(max_width as usize - extra_length);
             }
             if tail_as_str.len() + extra_length + 1 <= max_width as usize {
@@ -447,16 +466,18 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
             // Very special case: can't include a decimal point
             // within max_width
             if tail_as_str.len() == 0 && max_width == 7 && sign {
-                return format!("-{}{}{}",
-                               digits[0] as char,
-                               if config.capitalize_e { "E" } else { "e" },
-                               e - 1);
+                return format!(
+                    "-{}{}{}",
+                    digits[0] as char,
+                    if config.capitalize_e { "E" } else { "e" },
+                    e - 1
+                );
             }
             // Defer to the generic e-notation case
             for c in tail_as_str.chars() {
                 digits.push(c as u8);
             }
-        } 
+        }
         // Generic e-notation case
         let mut res = String::with_capacity(digits.len() + 5);
         if sign {
@@ -518,7 +539,7 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
 /// using a given configuration
 ///
 /// # Example
-/// 
+///
 /// ```
 /// use pretty_dtoa::{dtoa, FmtFloatConfig};
 ///
@@ -540,13 +561,11 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     let rad_10 = d2d(value);
     let sign = value.is_sign_negative();
     let s = format!("{}", rad_10.mantissa);
-    let exp = rad_10.exponent + s.len()as i32;
+    let exp = rad_10.exponent + s.len() as i32;
     let s = digits_to_a(sign, s.into_bytes(), exp, config);
     if let Some(limit) = config.max_width {
         if s.len() > limit as usize {
-            return std::iter::repeat('#')
-                .take(limit as usize)
-                .collect();
+            return std::iter::repeat('#').take(limit as usize).collect();
         }
     }
     s
@@ -567,13 +586,11 @@ pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
     let rad_10 = f2d(value);
     let sign = value.is_sign_negative();
     let s = format!("{}", rad_10.mantissa);
-    let exp = rad_10.exponent + s.len()as i32;
+    let exp = rad_10.exponent + s.len() as i32;
     let s = digits_to_a(sign, s.into_bytes(), exp, config);
     if let Some(limit) = config.max_width {
         if s.len() > limit as usize {
-            return std::iter::repeat('#')
-                .take(limit as usize)
-                .collect();
+            return std::iter::repeat('#').take(limit as usize).collect();
         }
     }
     s
@@ -585,10 +602,9 @@ mod tests {
     macro_rules! check {
         ($ident:ident) => {
             #[no_mangle]
-            static $ident: $crate::__rt::AtomicUsize =
-                $crate::__rt::AtomicUsize::new(0);
+            static $ident: $crate::__rt::AtomicUsize = $crate::__rt::AtomicUsize::new(0);
             let _guard = $crate::__rt::Guard::new(&$ident, stringify!($ident));
-        }
+        };
     }
 
     use super::*;
@@ -598,32 +614,40 @@ mod tests {
 
     #[test]
     fn test_widths() {
+        check!(test_widths_internal);
         // Test random floats with several configurations, and
         // make sure that .max_width(_) does its job
         let mut rng = rand::thread_rng();
 
         let configs = &[
             FmtFloatConfig::default(),
-            FmtFloatConfig::default()
-                .force_no_e_notation(),
-            FmtFloatConfig::default()
-                .add_point_zero(true),
+            FmtFloatConfig::default().force_no_e_notation(),
+            FmtFloatConfig::default().add_point_zero(true),
             FmtFloatConfig::default()
                 .truncate()
                 .force_e_notation()
                 .min_significant_digits(5),
         ];
-        
+
         for width in 5..=13 {
             for i in 0..20000 {
-                let config = configs[i % configs.len()]
-                    .max_width(width);
+                let config = configs[i % configs.len()].max_width(width);
                 let val = f64::from_bits(rng.gen::<u64>());
                 if val.is_nan() {
                     continue;
                 }
                 let as_string = dtoa(val, config);
-                assert!(as_string.len() <= width as usize, "Found bad example for string width: '{}' at width {} gives {}", val, width, as_string);
+                assert!(
+                    as_string.len() <= width as usize,
+                    "Found bad example for string width: '{}' at width {} gives {}",
+                    val,
+                    width,
+                    as_string
+                );
+                if as_string.chars().nth(0) == Some('#') {
+                    assert!(width <= 6, "Found example of a too-wide float: {}", val);
+                    hit!(test_widths_internal);
+                }
             }
         }
     }
@@ -633,14 +657,13 @@ mod tests {
         // Make sure random floats with several configurations
         // round trip perfectly
         let mut rng = rand::thread_rng();
-        
+
         let configs = &[
             FmtFloatConfig::default(),
             FmtFloatConfig::default()
                 .force_no_e_notation()
                 .add_point_zero(true),
-            FmtFloatConfig::default()
-                .force_e_notation(),
+            FmtFloatConfig::default().force_e_notation(),
         ];
         for _ in 0..20000 {
             for config in configs.iter().cloned() {
@@ -654,19 +677,18 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn test_round_trip_ftoa() {
         // Test round tripping for random f32's
         let mut rng = rand::thread_rng();
-        
+
         let configs = &[
             FmtFloatConfig::default(),
             FmtFloatConfig::default()
                 .force_no_e_notation()
                 .add_point_zero(true),
-            FmtFloatConfig::default()
-                .force_e_notation(),
+            FmtFloatConfig::default().force_e_notation(),
         ];
         for _ in 0..20000 {
             for config in configs.iter().cloned() {
@@ -683,9 +705,7 @@ mod tests {
 
     #[test]
     fn test_max_sig_digits() {
-        let config = FmtFloatConfig::default()
-            .round()
-            .max_significant_digits(5);
+        let config = FmtFloatConfig::default().round().max_significant_digits(5);
         assert_eq!(dtoa(3.111111, config), "3.1111");
         assert_eq!(dtoa(123.4567, config), "123.46");
         assert_eq!(dtoa(0.0001234567, config), "0.00012346");
@@ -701,8 +721,7 @@ mod tests {
 
     #[test]
     fn test_min_sig_digits() {
-        let config = FmtFloatConfig::default()
-            .min_significant_digits(5);
+        let config = FmtFloatConfig::default().min_significant_digits(5);
         assert_eq!(dtoa(3.111111, config), "3.111111");
         assert_eq!(dtoa(12.0, config), "12.000");
         assert_eq!(dtoa(340.0, config), "340.00");
@@ -712,18 +731,14 @@ mod tests {
 
     #[test]
     fn test_max_decimal_digits() {
-        let config = FmtFloatConfig::default()
-            .max_decimal_digits(3)
-            .round();
+        let config = FmtFloatConfig::default().max_decimal_digits(3).round();
         assert_eq!(dtoa(3.41214, config), "3.412");
         assert_eq!(dtoa(3.4129, config), "3.413");
         assert_eq!(dtoa(3.4999, config), "3.5");
         assert_eq!(dtoa(1293.4129, config), "1293.413");
         assert_eq!(dtoa(203.4999, config), "203.5");
         assert_eq!(dtoa(0.002911, config), "0.003");
-        let config = FmtFloatConfig::default()
-            .max_decimal_digits(3)
-            .truncate();
+        let config = FmtFloatConfig::default().max_decimal_digits(3).truncate();
         assert_eq!(dtoa(3.41214, config), "3.412");
         assert_eq!(dtoa(3.4129, config), "3.412");
         assert_eq!(dtoa(3.4999, config), "3.499");
@@ -747,13 +762,11 @@ mod tests {
 
     #[test]
     fn test_min_decimal_digits() {
-        let config = FmtFloatConfig::default()
-            .min_decimal_digits(3);
+        let config = FmtFloatConfig::default().min_decimal_digits(3);
         assert_eq!(dtoa(3.4, config), "3.400");
         assert_eq!(dtoa(10.0, config), "10.000");
         assert_eq!(dtoa(100.0, config), "100.000");
-        let config = FmtFloatConfig::default()
-            .min_decimal_digits(5);
+        let config = FmtFloatConfig::default().min_decimal_digits(5);
         assert_eq!(dtoa(0.023, config), "0.02300");
         assert_eq!(dtoa(0.123, config), "0.12300");
         assert_eq!(dtoa(0.12345678, config), "0.12345678");
@@ -761,18 +774,16 @@ mod tests {
 
     #[test]
     fn test_upper_e_break() {
-        let config = FmtFloatConfig::default()
-            .upper_e_break(3);
+        let config = FmtFloatConfig::default().upper_e_break(3);
         assert_eq!(dtoa(23.4, config), "23.4");
         assert_eq!(dtoa(892.3, config), "892.3");
         assert_eq!(dtoa(1892.3, config), "1.8923e3");
         assert_eq!(dtoa(71892.3, config), "7.18923e4");
     }
-    
+
     #[test]
     fn test_lower_e_break() {
-        let config = FmtFloatConfig::default()
-            .lower_e_break(-3);
+        let config = FmtFloatConfig::default().lower_e_break(-3);
         assert_eq!(dtoa(0.123, config), "0.123");
         assert_eq!(dtoa(0.0123, config), "0.0123");
         assert_eq!(dtoa(0.00123, config), "0.00123");
@@ -782,8 +793,7 @@ mod tests {
 
     #[test]
     fn test_ignore_extremes() {
-        let config = FmtFloatConfig::default()
-            .ignore_extremes(3);
+        let config = FmtFloatConfig::default().ignore_extremes(3);
         assert_eq!(dtoa(12.1992, config), "12.1992");
         assert_eq!(dtoa(12.199921, config), "12.2");
         assert_eq!(dtoa(12.1002, config), "12.1002");
@@ -796,8 +806,7 @@ mod tests {
 
     #[test]
     fn test_force_e_notation() {
-        let config = FmtFloatConfig::default()
-            .force_e_notation();
+        let config = FmtFloatConfig::default().force_e_notation();
         assert_eq!(dtoa(1.0, config), "1.0e0");
         assert_eq!(dtoa(15.0, config), "1.5e1");
         assert_eq!(dtoa(0.150, config), "1.5e-1");
@@ -816,20 +825,17 @@ mod tests {
 
     #[test]
     fn test_capitalize_e() {
-        let config = FmtFloatConfig::default()
-            .capitalize_e(true);
+        let config = FmtFloatConfig::default().capitalize_e(true);
         assert_eq!(dtoa(1.2e8, config), "1.2E8");
     }
 
     #[test]
     fn test_add_point_zero() {
-        let config = FmtFloatConfig::default()
-            .add_point_zero(true);
+        let config = FmtFloatConfig::default().add_point_zero(true);
         assert_eq!(dtoa(1230.0, config), "1230.0");
         assert_eq!(dtoa(129.0, config), "129.0");
         assert_eq!(dtoa(12.2, config), "12.2");
-        let config = FmtFloatConfig::default()
-            .add_point_zero(false);
+        let config = FmtFloatConfig::default().add_point_zero(false);
         assert_eq!(dtoa(1230.0, config), "1230");
         assert_eq!(dtoa(129.0, config), "129");
         assert_eq!(dtoa(12.2, config), "12.2");
@@ -840,26 +846,19 @@ mod tests {
         check!(e_width_case_a);
         check!(e_width_case_b);
         check!(e_width_case_c);
-        let config = FmtFloatConfig::default()
-            .max_width(6)
-            .force_no_e_notation();
+        let config = FmtFloatConfig::default().max_width(6).force_no_e_notation();
         assert_eq!(dtoa(123.4533, config), "123.45");
         assert_eq!(dtoa(0.00324, config), "0.0032");
         assert_eq!(dtoa(-0.0324, config), "-0.032");
         assert_eq!(dtoa(3e10, config), "3.0e10");
         assert_eq!(dtoa(3.1e10, config), "3.1e10");
-        let config = FmtFloatConfig::default()
-            .max_width(5)
-            .force_no_e_notation();
+        let config = FmtFloatConfig::default().max_width(5).force_no_e_notation();
         assert_eq!(dtoa(3e10, config), "3.e10");
         assert_eq!(dtoa(3.1e10, config), "3.e10");
-        let config = FmtFloatConfig::default()
-            .max_width(8)
-            .force_no_e_notation();
+        let config = FmtFloatConfig::default().max_width(8).force_no_e_notation();
         assert_eq!(dtoa(3.24e-10, config), "3.24e-10");
         assert_eq!(dtoa(3.24e10, config), "3.24e10");
-        let config = FmtFloatConfig::default()
-            .max_width(5);
+        let config = FmtFloatConfig::default().max_width(5);
         assert_eq!(dtoa(-3e100, config), "#####");
     }
 
