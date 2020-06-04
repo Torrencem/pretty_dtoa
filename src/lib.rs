@@ -431,6 +431,7 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
     }
     // Final formatting stage
     if use_e_notation {
+        let mut add_zero_after_radix_point = config.max_width.is_none();
         if let Some(max_width) = config.max_width {
             let mut tail_as_str: String = digits.drain(1..).map(|val| val as char).collect();
             let e_length = format!("{}", e - 1).len();
@@ -439,6 +440,9 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
                 tail_as_str.drain(..);
             } else { 
                 tail_as_str.truncate(max_width as usize - extra_length);
+            }
+            if tail_as_str.len() + extra_length + 1 <= max_width as usize {
+                add_zero_after_radix_point = true;
             }
             // Very special case: can't include a decimal point
             // within max_width
@@ -461,7 +465,7 @@ fn digits_to_a(sign: bool, mut digits: Vec<u8>, mut e: i32, config: FmtFloatConf
         res.push(digits[0] as char);
         res.push(config.radix_point);
         if digits.len() == 1 {
-            if !config.max_width.is_some() {
+            if add_zero_after_radix_point {
                 res.push('0');
             }
         } else {
@@ -842,6 +846,13 @@ mod tests {
         assert_eq!(dtoa(123.4533, config), "123.45");
         assert_eq!(dtoa(0.00324, config), "0.0032");
         assert_eq!(dtoa(-0.0324, config), "-0.032");
+        assert_eq!(dtoa(3e10, config), "3.0e10");
+        assert_eq!(dtoa(3.1e10, config), "3.1e10");
+        let config = FmtFloatConfig::default()
+            .max_width(5)
+            .force_no_e_notation();
+        assert_eq!(dtoa(3e10, config), "3.e10");
+        assert_eq!(dtoa(3.1e10, config), "3.e10");
         let config = FmtFloatConfig::default()
             .max_width(8)
             .force_no_e_notation();
