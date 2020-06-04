@@ -253,7 +253,9 @@ impl FmtFloatConfig {
     
     /// The maximum width of all the characters in the string. This
     /// should be greater than or equal to 7 to guarantee all floats
-    /// will print correctly, but can be smaller for certain floats
+    /// will print correctly, but can be smaller for certain floats.
+    /// Floats that are impossible to represent in a certain width will
+    /// be represented by pound signs.
     pub const fn max_width(mut self, val: u8) -> Self {
         self.max_width = Some(val);
         self
@@ -535,7 +537,15 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     let sign = value.is_sign_negative();
     let s = format!("{}", rad_10.mantissa);
     let exp = rad_10.exponent + s.len()as i32;
-    digits_to_a(sign, s.into_bytes(), exp, config)
+    let s = digits_to_a(sign, s.into_bytes(), exp, config);
+    if let Some(limit) = config.max_width {
+        if s.len() > limit as usize {
+            return std::iter::repeat('#')
+                .take(limit as usize)
+                .collect();
+        }
+    }
+    s
 }
 
 /// Convert a single-precision floating point value (``f32``) to a string
@@ -554,7 +564,15 @@ pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
     let sign = value.is_sign_negative();
     let s = format!("{}", rad_10.mantissa);
     let exp = rad_10.exponent + s.len()as i32;
-    digits_to_a(sign, s.into_bytes(), exp, config)
+    let s = digits_to_a(sign, s.into_bytes(), exp, config);
+    if let Some(limit) = config.max_width {
+        if s.len() > limit as usize {
+            return std::iter::repeat('#')
+                .take(limit as usize)
+                .collect();
+        }
+    }
+    s
 }
 
 #[cfg(test)]
@@ -592,23 +610,11 @@ mod tests {
                 .min_significant_digits(5),
         ];
         
-        for width in 6..=13 {
+        for width in 5..=13 {
             for i in 0..20000 {
                 let config = configs[i % configs.len()]
                     .max_width(width);
                 let val = f64::from_bits(rng.gen::<u64>());
-                if val > 0.0 && val <= 9e-99 && width == 6 {
-                    // unrepresentable
-                    continue;
-                }
-                if val < 0.0 && val >= -9e-9 && width == 6 {
-                    // unrepresentable
-                    continue;
-                }
-                if val <= -1e100 && width == 6 {
-                    // unrepresentable
-                    continue;
-                }
                 if val.is_nan() {
                     continue;
                 }
@@ -841,6 +847,9 @@ mod tests {
             .force_no_e_notation();
         assert_eq!(dtoa(3.24e-10, config), "3.24e-10");
         assert_eq!(dtoa(3.24e10, config), "3.24e10");
+        let config = FmtFloatConfig::default()
+            .max_width(5);
+        assert_eq!(dtoa(-3e100, config), "#####");
     }
 
     #[test]

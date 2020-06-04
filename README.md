@@ -1,7 +1,7 @@
 
 # Pretty dtoa
 
-Configurable float and double printing. ``pretty_dtoa`` Comes with lots of options for configuring different aspects of displaying floats.
+Configurable float and double printing. ``pretty_dtoa`` Comes with lots of options for configuring different aspects of displaying floats, and has only 1 dependency total (including dependencies of dependencies), for very fast compile times.
 
 This crate uses the [ryu-floating-decimal crate](https://github.com/Torrencem/ryu-floating-decimal) (itself a fork of the [ryu crate](https://github.com/dtolnay/ryu)) to generate a "floating decimal", or a floating point with radix 10, and then it uses formatting rules particular to the configuration to create a formatted string.
 
