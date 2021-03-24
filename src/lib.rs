@@ -22,7 +22,8 @@ pub enum RoundMode {
     Truncate,
 }
 
-/// Configuration for formatting floats into strings
+/// Configuration for formatting floats into strings. Look at the associated methods for this type
+/// to see default values and specific examples.
 ///
 /// # Example
 ///
@@ -460,7 +461,11 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
     if value.is_nan() {
         return "NaN".to_string();
     } else if value.is_infinite() {
-        return "inf".to_string();
+        if value.is_sign_positive() {
+            return "inf".to_string();
+        } else {
+            return "-inf".to_string();
+        }
     }
     let rad_10 = d2d(value);
     let sign = value.is_sign_negative();
