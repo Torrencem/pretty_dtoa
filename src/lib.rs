@@ -563,10 +563,15 @@ pub fn dtoa(value: f64, config: FmtFloatConfig) -> String {
             return "-inf".to_string();
         }
     }
-    let rad_10 = d2d(value);
     let sign = value.is_sign_negative();
-    let s = format!("{}", rad_10.mantissa);
-    let exp = rad_10.exponent + s.len() as i32;
+    let (s, exp) = if value == 0.0 {
+        (String::from("0"), 1)
+    } else {
+        let rad_10 = d2d(value);
+        let s = format!("{}", rad_10.mantissa);
+        let exp = rad_10.exponent + s.len() as i32;
+        (s, exp)
+    };
     let s = digits_to_a(sign, s.into_bytes(), exp, config);
     if let Some(limit) = config.max_width {
         if s.len() > limit as usize {
@@ -588,10 +593,15 @@ pub fn ftoa(value: f32, config: FmtFloatConfig) -> String {
             return "-inf".to_string();
         }
     }
-    let rad_10 = f2d(value);
+    let (s, exp) = if value == 0.0 {
+        (String::from("0"), 1)
+    } else {
+        let rad_10 = f2d(value);
+        let s = format!("{}", rad_10.mantissa);
+        let exp = rad_10.exponent + s.len() as i32;
+        (s, exp)
+    };
     let sign = value.is_sign_negative();
-    let s = format!("{}", rad_10.mantissa);
-    let exp = rad_10.exponent + s.len() as i32;
     let s = digits_to_a(sign, s.into_bytes(), exp, config);
     if let Some(limit) = config.max_width {
         if s.len() > limit as usize {
@@ -875,5 +885,20 @@ mod tests {
         assert_eq!(dtoa(123.4, config), "123,4");
         assert_eq!(dtoa(1.3e10, config), "1,3e10");
         assert_eq!(dtoa(123.0, config), "123,0");
+    }
+
+    #[test]
+    fn test_issue_i() {
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(2)
+            .add_point_zero(true);
+
+        assert_eq!(dtoa(0., config), "0.0");
+        
+        let config = FmtFloatConfig::default()
+            .max_decimal_digits(2)
+            .add_point_zero(false);
+
+        assert_eq!(dtoa(0., config), "0");
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name          = "pretty_dtoa"
-version       = "0.2.0"
+version       = "0.3.0"
 authors       = ["Matthew Torrence <matt@torrencefamily.net>"]
 edition       = "2018"
 description   = "Configurable floating point number to string conversions, with many options for controlling various aspects of displaying floats."
